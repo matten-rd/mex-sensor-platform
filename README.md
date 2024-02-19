@@ -1,1 +1,1 @@
-# mex-zed
+# mex-sensor-platform
