@@ -1,27 +1,9 @@
 from ultralytics import YOLO
-from ultralytics.solutions import object_counter
 import cv2
 
-class YOLOv8_ObjectCounter:
-    def __init__(
-            self, 
-            regionPoints, 
-            classes, 
-            conf = 0.5, 
-            iou = 0.5,
-            modelName="yolov8n.pt", 
-            camera=0, 
-            outputFile="outputvideo.avi"):
-        
+class YOLOv8_Tracker:
+    def __init__(self, classes, conf = 0.5, iou = 0.5, modelName="yolov8n.pt", camera=0, outputFile="outputvideo.avi"):
         self.model = YOLO(modelName)
-        self.regionPoints = regionPoints
-        self.counter = object_counter.ObjectCounter()
-        self.counter.set_args(
-            view_img=False,
-            reg_pts=regionPoints,
-            classes_names=self.model.names,
-            draw_tracks=False
-        )
         self.classes = classes
         self.conf = conf
         self.iou = iou
@@ -31,7 +13,7 @@ class YOLOv8_ObjectCounter:
         self.videoWriter = cv2.VideoWriter(
             outputFile,
             cv2.VideoWriter_fourcc(*'MJPG'),
-            (int(self.cap.get(cv2.CAP_PROP_FPS))),
+            int(self.cap.get(cv2.CAP_PROP_FPS)),
             (w, h)
         )
         
@@ -70,15 +52,21 @@ class YOLOv8_ObjectCounter:
 
     def trackObjects(self):
         frame = self.getFullFrame()
-        frameL, _ = self.getLeftRightFrame()
         # Run tracking
-        results = self.model.track(frame, conf=self.conf, iou=self.iou, show=False, persist=True, classes=self.classes)
-        frame = self.counter.start_counting(frame, results)
+        results = self.model.track(
+            source=frame, 
+            persist=True, 
+            conf=self.conf, 
+            iou=self.iou, 
+            show=False, 
+            classes=self.classes
+        )
+        frame = results[0].plot()
 
         return frame
     
-    def showVideoFeed(self, frame, winName="ZED"):
-        cv2.imshow(winName, frame)
+    def showVideoFeed(self, frame):
+        cv2.imshow(self.windowName, frame)
 
     def destroyVideoFeed(self):
         self.cap.release()
